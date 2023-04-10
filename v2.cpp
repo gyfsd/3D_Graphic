@@ -4,6 +4,7 @@
 #include <SDL/SDL.h>
 #include "gamelib.hpp"
 #include "grlib.cpp"
+#include "image000.c"
 namespace points_{
 	struct point_{
 		float4 pos;
@@ -12,7 +13,7 @@ namespace points_{
 		uint32_t color = 0xffffffff;
 		uint32_t edgecolor = 0xffffffff;
 	};
-	struct points{
+	struct mesh{
 		point_ *points;
 		uint32_t pointsC;
 	};
@@ -110,7 +111,7 @@ class render_{
 		}
 	}
 }
-	void render(points PS,cam camd,SDL_Surface *scr){
+	void render(mesh PS,cam camd,SDL_Surface *scr){
 		camd.rotation.x = fabs(fmod(camd.rotation.x,360));
 		camd.rotation.y = fabs(fmod(camd.rotation.y,360));
 		camd.rotation.z = fabs(fmod(camd.rotation.z,360));
@@ -157,8 +158,8 @@ class main_{
 	class sdl_ sdl;
 	class draw_ d;
 	public:
-	points create_random(){
-		points cube;
+	mesh create_random(){
+		mesh cube;
 		point_ *p = (points_::point_*)malloc(sizeof(struct point_)*9999);
 		uint32_t *edges = (uint32_t *)malloc(9999*4);
 		srand(754);
@@ -177,8 +178,8 @@ class main_{
 		cube.pointsC = 9999;
 		return cube;
 	}
-	points create_sphere(float x,float y,float z,float r,point_ *p,uint32_t *edges){
-		points sphere;
+	mesh create_sphere(float x,float y,float z,float r,point_ *p,uint32_t *edges){
+		mesh sphere;
 		/*point_ *p = (points_::point_*)malloc(sizeof(struct point_)*36*360);
 		uint32_t *edges = (uint32_t *)malloc(36*360*4*4);*/
 		float4 rot;
@@ -200,24 +201,52 @@ class main_{
 				rt.z = 0;
 				arot = rotate_matrix_in_grad(rot,rt);
 				p[pC].color = 0xffffffff;
-				p[pC].edgecolor = 0xff;
+				p[pC].edgecolor = 0xffffffff;
 				p[pC].pos.x = (arot.x*r)+x;
 				p[pC].pos.y = (arot.y*r)+y;
 				p[pC].pos.z = (arot.z*r)+z;
+				p[pC].edgesC = 0;
+				if(pC - 36 > -1 & pC + 36 < 36*36){
 				p[pC].edgesC = 4;
 				p[pC].edges = &*edges+(pC*4);
 				p[pC].edges[0] = pC-36;
 				p[pC].edges[1] = pC+1;
 				p[pC].edges[2] = pC-1;
 				p[pC].edges[3] = pC+36;
+				}
 				pC++;
 				fx+=10;
 			}
 			fy+=10;
 		}
-		sphere.points = p;
+		sphere.points = &*p;
 		sphere.pointsC = 36*36;
 		return sphere;
+	}
+	mesh create_image(int sx,int sy,float x,float y,float z,float r,point_ *p,uint32_t *edges,uint32_t *img){
+		int ix = 0;
+		int iy = 0;
+		long pC = 0;;
+		mesh simg;
+		while(ix < sx){
+			iy = 0;
+			while(iy < sy){
+				p[pC].color = img[ix+(iy*sx)];
+				p[pC].edgecolor = 0xffffffff;
+				p[pC].pos.x = (ix*r)+x;
+				p[pC].pos.y = (iy*r)+y;
+				p[pC].pos.z = z;
+				p[pC].edgesC = 0;
+				p[pC].edges = &*edges+(pC);
+				p[pC].edges[0] = pC-1;
+				pC++;
+				iy++;
+			}
+			ix++;
+		}
+		simg.points = &*p;
+		simg.pointsC = 10*200;
+		return simg;
 	}
 	int main(){
 		class event_ event;
@@ -229,15 +258,15 @@ class main_{
 		c.rotation.x = 0;
 		c.rotation.y = 0;
 		c.rotation.z = 0;
-		c.speed = 10;
+		c.speed = 1;
 		c.size.x = 1;
 		c.size.y = 1;
 		point_ *p = (points_::point_*)malloc(sizeof(struct point_)*36*36);
-		uint32_t *edges = (uint32_t *)malloc(36*360*4*4);
+		uint32_t *edges = (uint32_t *)malloc(36*36*4*4);
 		struct event_::keyboarddata keyd;
 		float spheres = 0;
 		while(1){
-		points cube = create_sphere(0,0,0,100,p,edges);
+		mesh cube = create_sphere(0,0,0,20,p,edges);
 		spheres++;
 		if(spheres > 20){
 			spheres = 10;
@@ -286,20 +315,20 @@ class main_{
 					
 				}
 				if(keyd.code == SDLK_RIGHT){
-					c.rotation.y -= 2;
+					c.rotation.y -= 1;
 					if(c.rotation.y < 0){c.rotation.y = 360;}
 
 				}
 				if(keyd.code == SDLK_LEFT){
-					c.rotation.y += 2;
+					c.rotation.y += 1;
 					if(c.rotation.y > 360){c.rotation.y = 0;}
 				}
 				if(keyd.code == SDLK_UP){
-					c.rotation.x -= 2;
+					c.rotation.x -= 1;
 					if(c.rotation.x < 0){c.rotation.x = 360;}
 				}
 				if(keyd.code == SDLK_DOWN){
-					c.rotation.x += 2;
+					c.rotation.x += 1;
 					if(c.rotation.x > 360){c.rotation.x = 0;}
 				}
 			
@@ -311,8 +340,7 @@ class main_{
 		return 0;
 	}
 };
-int main(){
+int WinMain(){
 	class main_ main;
 	return main.main();
 }
-
